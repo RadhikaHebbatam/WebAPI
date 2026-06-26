@@ -80,7 +80,7 @@ jobs:
               Start-Sleep -Seconds 2
               Write-Host "Process stopped."
           } else {
-              Write-Host "No existing process — clean deploy."
+              Write-Host "No existing process - clean deploy."
           }
 
       - name: Backup previous deployment
