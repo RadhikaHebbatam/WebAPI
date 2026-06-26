@@ -1,4 +1,4 @@
-name: Product Catalogue API — CI/CD
+﻿name: Product Catalogue API - CI/CD
 
 on:
   push:
@@ -7,13 +7,9 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "ProductCatalogueAPI/**"
-      - ".github/workflows/ci-cd.yml"
 
 jobs:
 
-  # ── JOB 1: Build and Test on GitHub Cloud ─────────────────────
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -31,23 +27,13 @@ jobs:
         run: dotnet restore "ProductCatalogueAPI/ProductCatalogueAPI.sln"
 
       - name: Build solution
-        run: |
-          dotnet build "ProductCatalogueAPI/ProductCatalogueAPI.sln" \
-            --configuration Release \
-            --no-restore
+        run: dotnet build "ProductCatalogueAPI/ProductCatalogueAPI.sln" --configuration Release --no-restore
 
       - name: Run tests
-        run: |
-          dotnet test "ProductCatalogueAPI/ProductCatalogueAPI.sln" \
-            --configuration Release \
-            --no-build \
-            --verbosity normal
+        run: dotnet test "ProductCatalogueAPI/ProductCatalogueAPI.sln" --configuration Release --no-build --verbosity normal
 
       - name: Publish application
-        run: |
-          dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" \
-            --configuration Release \
-            --output ./publish
+        run: dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" --configuration Release --output ./publish
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -56,7 +42,6 @@ jobs:
           path: ./publish
           retention-days: 5
 
-  # ── JOB 2: Deploy to Local Machine ────────────────────────────
   deploy-local:
     name: Deploy to Local Machine
     runs-on: self-hosted
@@ -89,14 +74,14 @@ jobs:
           $deployPath = "C:\Deploy\ProductCatalogueAPI\app"
           $backupPath = "C:\Deploy\ProductCatalogueAPI\backup"
           if (Test-Path $deployPath) {
-              Write-Host "Backing up previous deployment..."
+              Write-Host "Backing up..."
               if (Test-Path $backupPath) {
                   Remove-Item $backupPath -Recurse -Force
               }
               Copy-Item $deployPath $backupPath -Recurse -Force
               Write-Host "Backup created."
           } else {
-              Write-Host "No previous deployment — skipping backup."
+              Write-Host "No previous deployment - skipping backup."
               New-Item -ItemType Directory -Force -Path $deployPath
           }
 
@@ -128,10 +113,7 @@ jobs:
           $exePath    = "C:\Deploy\ProductCatalogueAPI\app\ProductCatalogueAPI.exe"
           $workingDir = "C:\Deploy\ProductCatalogueAPI\app"
           Write-Host "Starting application..."
-          Start-Process `
-            -FilePath $exePath `
-            -WorkingDirectory $workingDir `
-            -WindowStyle Hidden
+          Start-Process -FilePath $exePath -WorkingDirectory $workingDir -WindowStyle Hidden
           Start-Sleep -Seconds 5
           Write-Host "Application started."
 
@@ -144,16 +126,13 @@ jobs:
           Write-Host "Running health check at $url..."
           for ($i = 1; $i -le $retries; $i++) {
               try {
-                  $response = Invoke-WebRequest `
-                    -Uri $url `
-                    -UseBasicParsing `
-                    -TimeoutSec 5
+                  $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
                   if ($response.StatusCode -eq 200) {
                       Write-Host "Health check passed!"
                       exit 0
                   }
               } catch {
-                  Write-Host "Attempt $i of $retries failed. Retrying in ${delay}s..."
+                  Write-Host "Attempt $i of $retries - retrying in ${delay}s..."
                   Start-Sleep -Seconds $delay
               }
           }
@@ -163,10 +142,8 @@ jobs:
       - name: Deployment summary
         shell: powershell
         run: |
-          Write-Host "========================================"
           Write-Host "Deployment Complete!"
           Write-Host "Folder:  C:\Deploy\ProductCatalogueAPI\app"
           Write-Host "URL:     http://localhost:5000"
           Write-Host "Swagger: http://localhost:5000/swagger"
           Write-Host "Health:  http://localhost:5000/health"
-          Write-Host "========================================"
