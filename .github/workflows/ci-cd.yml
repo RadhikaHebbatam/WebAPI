@@ -1,0 +1,172 @@
+name: Product Catalogue API — CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "ProductCatalogueAPI/**"
+      - ".github/workflows/ci-cd.yml"
+
+jobs:
+
+  # ── JOB 1: Build and Test on GitHub Cloud ─────────────────────
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore NuGet packages
+        run: dotnet restore "ProductCatalogueAPI/ProductCatalogueAPI.sln"
+
+      - name: Build solution
+        run: |
+          dotnet build "ProductCatalogueAPI/ProductCatalogueAPI.sln" \
+            --configuration Release \
+            --no-restore
+
+      - name: Run tests
+        run: |
+          dotnet test "ProductCatalogueAPI/ProductCatalogueAPI.sln" \
+            --configuration Release \
+            --no-build \
+            --verbosity normal
+
+      - name: Publish application
+        run: |
+          dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" \
+            --configuration Release \
+            --output ./publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-app
+          path: ./publish
+          retention-days: 5
+
+  # ── JOB 2: Deploy to Local Machine ────────────────────────────
+  deploy-local:
+    name: Deploy to Local Machine
+    runs-on: self-hosted
+    needs: build-and-test
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: published-app
+          path: C:\Deploy\ProductCatalogueAPI\publish
+
+      - name: Stop existing app if running
+        shell: powershell
+        run: |
+          $processName = "ProductCatalogueAPI"
+          $process = Get-Process -Name $processName -ErrorAction SilentlyContinue
+          if ($process) {
+              Write-Host "Stopping existing process..."
+              Stop-Process -Name $processName -Force
+              Start-Sleep -Seconds 2
+              Write-Host "Process stopped."
+          } else {
+              Write-Host "No existing process — clean deploy."
+          }
+
+      - name: Backup previous deployment
+        shell: powershell
+        run: |
+          $deployPath = "C:\Deploy\ProductCatalogueAPI\app"
+          $backupPath = "C:\Deploy\ProductCatalogueAPI\backup"
+          if (Test-Path $deployPath) {
+              Write-Host "Backing up previous deployment..."
+              if (Test-Path $backupPath) {
+                  Remove-Item $backupPath -Recurse -Force
+              }
+              Copy-Item $deployPath $backupPath -Recurse -Force
+              Write-Host "Backup created."
+          } else {
+              Write-Host "No previous deployment — skipping backup."
+              New-Item -ItemType Directory -Force -Path $deployPath
+          }
+
+      - name: Deploy files
+        shell: powershell
+        run: |
+          $source = "C:\Deploy\ProductCatalogueAPI\publish"
+          $dest   = "C:\Deploy\ProductCatalogueAPI\app"
+          Write-Host "Deploying to $dest..."
+          New-Item -ItemType Directory -Force -Path $dest
+          Copy-Item "$source\*" $dest -Recurse -Force
+          Write-Host "Files deployed."
+
+      - name: Inject connection string
+        shell: powershell
+        env:
+          DB_CONNECTION: ${{ secrets.DEV_CONNECTION_STRING }}
+        run: |
+          $appSettings = "C:\Deploy\ProductCatalogueAPI\app\appsettings.json"
+          Write-Host "Injecting configuration..."
+          $config = Get-Content $appSettings -Raw | ConvertFrom-Json
+          $config.ConnectionStrings.DefaultConnection = $env:DB_CONNECTION
+          $config | ConvertTo-Json -Depth 10 | Set-Content $appSettings
+          Write-Host "Configuration injected."
+
+      - name: Start application
+        shell: powershell
+        run: |
+          $exePath    = "C:\Deploy\ProductCatalogueAPI\app\ProductCatalogueAPI.exe"
+          $workingDir = "C:\Deploy\ProductCatalogueAPI\app"
+          Write-Host "Starting application..."
+          Start-Process `
+            -FilePath $exePath `
+            -WorkingDirectory $workingDir `
+            -WindowStyle Hidden
+          Start-Sleep -Seconds 5
+          Write-Host "Application started."
+
+      - name: Health check
+        shell: powershell
+        run: |
+          $url     = "http://localhost:5000/health"
+          $retries = 5
+          $delay   = 3
+          Write-Host "Running health check at $url..."
+          for ($i = 1; $i -le $retries; $i++) {
+              try {
+                  $response = Invoke-WebRequest `
+                    -Uri $url `
+                    -UseBasicParsing `
+                    -TimeoutSec 5
+                  if ($response.StatusCode -eq 200) {
+                      Write-Host "Health check passed!"
+                      exit 0
+                  }
+              } catch {
+                  Write-Host "Attempt $i of $retries failed. Retrying in ${delay}s..."
+                  Start-Sleep -Seconds $delay
+              }
+          }
+          Write-Host "Health check failed."
+          exit 1
+
+      - name: Deployment summary
+        shell: powershell
+        run: |
+          Write-Host "========================================"
+          Write-Host "Deployment Complete!"
+          Write-Host "Folder:  C:\Deploy\ProductCatalogueAPI\app"
+          Write-Host "URL:     http://localhost:5000"
+          Write-Host "Swagger: http://localhost:5000/swagger"
+          Write-Host "Health:  http://localhost:5000/health"
+          Write-Host "========================================"
