@@ -99,11 +99,15 @@ jobs:
         shell: powershell
         env:
           DB_CONNECTION: ${{ secrets.DEV_CONNECTION_STRING }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
         run: |
           $appSettings = "C:\Deploy\ProductCatalogueAPI\app\appsettings.json"
           Write-Host "Injecting configuration..."
           $config = Get-Content $appSettings -Raw | ConvertFrom-Json
           $config.ConnectionStrings.DefaultConnection = $env:DB_CONNECTION
+          $config.AzureOpenAI.Endpoint = $env:AZURE_OPENAI_ENDPOINT
+          $config.AzureOpenAI.ApiKey = $env:AZURE_OPENAI_KEY
           $config | ConvertTo-Json -Depth 10 | Set-Content $appSettings
           Write-Host "Configuration injected."
 
