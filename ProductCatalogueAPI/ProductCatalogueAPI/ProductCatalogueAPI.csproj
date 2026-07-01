@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ProductCatalogueAPI.AI\ProductCatalogueAPI.AI.csproj" />
     <ProjectReference Include="..\ProductCatalogueAPI.Application\ProductCatalogueAPI.Application.csproj" />
     <ProjectReference Include="..\ProductCatalogueAPI.Core\ProductCatalogueAPI.Core.csproj" />
     <ProjectReference Include="..\ProductCatalogueAPI.Infrastructure\ProductCatalogueAPI.Infrastructure.csproj" />

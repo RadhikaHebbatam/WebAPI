@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using ProductCatalogueAPI.Core.Common;
 using ProductCatalogueAPI.Core.Entities;
 using ProductCatalogueAPI.Core.Interfaces.Repositories;
 using ProductCatalogueAPI.Infrastructure.Data;
@@ -151,6 +152,78 @@ namespace ProductCatalogueAPI.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
             var count = await connection.ExecuteScalarAsync<int>(sql, new { Id = id });
             return count > 0;
+        }
+
+        public async Task<IEnumerable<Product>> SearchByFilterAsync(ProductQueryFilter filter)
+        {
+            var sql = new System.Text.StringBuilder();
+            var parameters = new DynamicParameters();
+
+            sql.AppendLine(@"
+        SELECT 
+            p.Id,
+            p.Name,
+            p.Description,
+            p.Price,
+            p.StockQuantity,
+            p.IsActive,
+            p.CategoryId,
+            p.CreatedAt,
+            p.UpdatedAt
+        FROM Products p
+        WHERE 1=1");
+
+            if (filter.MinPrice.HasValue)
+            {
+                sql.AppendLine("AND p.Price >= @MinPrice");
+                parameters.Add("MinPrice", filter.MinPrice.Value);
+            }
+
+            if (filter.MaxPrice.HasValue)
+            {
+                sql.AppendLine("AND p.Price <= @MaxPrice");
+                parameters.Add("MaxPrice", filter.MaxPrice.Value);
+            }
+
+            if (filter.MinStock.HasValue)
+            {
+                sql.AppendLine("AND p.StockQuantity >= @MinStock");
+                parameters.Add("MinStock", filter.MinStock.Value);
+            }
+
+            if (filter.MaxStock.HasValue)
+            {
+                sql.AppendLine("AND p.StockQuantity <= @MaxStock");
+                parameters.Add("MaxStock", filter.MaxStock.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.NameContains))
+            {
+                sql.AppendLine("AND p.Name LIKE @NameContains");
+                parameters.Add("NameContains", $"%{filter.NameContains}%");
+            }
+
+            if (filter.CategoryId.HasValue)
+            {
+                sql.AppendLine("AND p.CategoryId = @CategoryId");
+                parameters.Add("CategoryId", filter.CategoryId.Value);
+            }
+
+            if (filter.IsActive.HasValue)
+            {
+                sql.AppendLine("AND p.IsActive = @IsActive");
+                parameters.Add("IsActive", filter.IsActive.Value);
+            }
+
+            // Whitelist validation - never let LLM output touch ORDER BY directly
+            var allowedColumns = new[] { "Price", "Name", "StockQuantity" };
+            var orderBy = allowedColumns.Contains(filter.OrderBy) ? filter.OrderBy : "p.Id";
+            var orderDirection = filter.OrderDirection?.ToUpper() == "DESC" ? "DESC" : "ASC";
+
+            sql.AppendLine($"ORDER BY {orderBy} {orderDirection}");
+
+            using var connection = _connectionFactory.CreateConnection();
+            return await connection.QueryAsync<Product>(sql.ToString(), parameters);
         }
 
     }

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductCatalogueAPI.Applica
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductCatalogueAPI.Infrastructure", "ProductCatalogueAPI.Infrastructure\ProductCatalogueAPI.Infrastructure.csproj", "{B1A04BCE-4D1E-4F3B-AA2D-CF7292063D82}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductCatalogueAPI.AI", "ProductCatalogueAPI.AI\ProductCatalogueAPI.AI.csproj", "{5182D7BA-FFCC-41EA-941D-6EB283471ED4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{B1A04BCE-4D1E-4F3B-AA2D-CF7292063D82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1A04BCE-4D1E-4F3B-AA2D-CF7292063D82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1A04BCE-4D1E-4F3B-AA2D-CF7292063D82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5182D7BA-FFCC-41EA-941D-6EB283471ED4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5182D7BA-FFCC-41EA-941D-6EB283471ED4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5182D7BA-FFCC-41EA-941D-6EB283471ED4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5182D7BA-FFCC-41EA-941D-6EB283471ED4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

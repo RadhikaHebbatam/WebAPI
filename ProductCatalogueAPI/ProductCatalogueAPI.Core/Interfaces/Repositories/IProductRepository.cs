@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ProductCatalogueAPI.Core.Common;
+
 
 namespace ProductCatalogueAPI.Core.Interfaces.Repositories
 {
@@ -22,5 +24,7 @@ namespace ProductCatalogueAPI.Core.Interfaces.Repositories
         Task DeleteAsync(int id);
 
         Task<bool> ExistsAsync(int id);
+
+        Task<IEnumerable<Product>> SearchByFilterAsync(ProductQueryFilter filter);
     }
 }

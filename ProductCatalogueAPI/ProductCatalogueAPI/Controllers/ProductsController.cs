@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ProductCatalogueAPI.AI.Services;
 using ProductCatalogueAPI.Core.Common;
+using ProductCatalogueAPI.Core.Interfaces.Repositories;
 using ProductCatalogueAPI.Core.Interfaces.Services;
+using ProductCatalogueAPI.AI.Services;
+using ProductCatalogueAPI.Core.Interfaces.Repositories;
 
 namespace ProductCatalogueAPI.Controllers;
 
@@ -26,13 +30,20 @@ public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
     private readonly ILogger<ProductsController> _logger;
+    private readonly NaturalLanguageQueryService _nlQueryService;  // ← add this
+    private readonly IProductRepository _productRepository;         // ← add this
+
 
     public ProductsController(
-        IProductService productService,
-        ILogger<ProductsController> logger)
+     IProductService productService,
+     ILogger<ProductsController> logger,
+     NaturalLanguageQueryService nlQueryService,      // ← add this
+     IProductRepository productRepository)            // ← add this
     {
         _productService = productService;
         _logger = logger;
+        _nlQueryService = nlQueryService;                // ← add this
+        _productRepository = productRepository;          // ← add this
     }
 
     /// <summary>
@@ -181,4 +192,27 @@ public class ProductsController : ControllerBase
             _ => StatusCode(500, new { message = result.ErrorMessage })
         };
     }
+
+    /// <summary>
+    /// POST api/products/search
+    /// Search products using natural language
+    /// Example body: { "query": "show me products under $50 with low stock" }
+    /// </summary>
+    [HttpPost("search")]
+    public async Task<IActionResult> Search([FromBody] SearchRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Query))
+            return BadRequest(new { message = "Query cannot be empty" });
+
+        var filter = await _nlQueryService.ParseQueryAsync(request.Query);
+        var products = await _productRepository.SearchByFilterAsync(filter);
+
+        return Ok(new
+        {
+            Query = request.Query,
+            InterpretedAs = filter,
+            Results = products
+        });
+    }
+    public record SearchRequest(string Query);
 }

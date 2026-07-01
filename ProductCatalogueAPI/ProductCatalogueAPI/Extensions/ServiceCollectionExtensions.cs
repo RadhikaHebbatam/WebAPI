@@ -1,6 +1,7 @@
 ﻿using ProductCatalogueAPI.Application.Services;
 using ProductCatalogueAPI.Core.Interfaces.Services;
 using ProductCatalogueAPI.Infrastructure.Extensions;
+using ProductCatalogueAPI.AI.Extensions;
 
 namespace ProductCatalogueAPI.Extensions;
 
@@ -21,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddInfrastructure();
         services.AddCorsPolicy(configuration);
         services.AddHealthCheckServices();
+        services.AddAIServices(configuration);
 
         return services;
     }
