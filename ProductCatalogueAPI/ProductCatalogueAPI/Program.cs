@@ -60,11 +60,10 @@ try
     app.UseProductCatalogueMiddleware();
 
     // 2. Swagger — development only
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    
+     app.UseSwagger();
+     app.UseSwaggerUI();
+    
 
     // 3. HSTS — tells browsers to use HTTPS only
     // WHY not in Development: dev uses self-signed certs
