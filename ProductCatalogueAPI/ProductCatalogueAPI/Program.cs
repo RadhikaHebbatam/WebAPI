@@ -97,6 +97,7 @@ try
     app.MapHealthChecks("/health/ready");
 
     // 9. Controllers
+    app.MapGet("/", () => Results.Redirect("/swagger"));
     app.MapControllers();
 
     Log.Information("ProductCatalogueAPI started successfully");
