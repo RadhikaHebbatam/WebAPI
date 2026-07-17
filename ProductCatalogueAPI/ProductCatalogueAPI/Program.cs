@@ -44,14 +44,14 @@ try
     // ?????????????????????????????????????????????????????????
     // ALL SERVICES
     // One method call registers everything via our extension.
-    // Program.cs stays clean — all wiring is in Extensions folder.
+    // Program.cs stays clean ï¿½ all wiring is in Extensions folder.
     // ?????????????????????????????????????????????????????????
     builder.Services.AddProductCatalogueServices(builder.Configuration);
 
     var app = builder.Build();
 
     // ?????????????????????????????????????????????????????????
-    // MIDDLEWARE PIPELINE — order is critical
+    // MIDDLEWARE PIPELINE ï¿½ order is critical
     // Each middleware wraps everything that comes after it.
     // ?????????????????????????????????????????????????????????
 
@@ -59,13 +59,19 @@ try
     //    Correlation ID ? Exception Handler ? Logging ? Security Headers
     app.UseProductCatalogueMiddleware();
 
-    // 2. Swagger — development only
+    // Static files (wwwroot) ï¿½ serves the plain-English search frontend.
+    // Must come before MapControllers so "/" resolves to wwwroot/index.html
+    // instead of falling through to routing.
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    // 2. Swagger ï¿½ development only
     
      app.UseSwagger();
      app.UseSwaggerUI();
     
 
-    // 3. HSTS — tells browsers to use HTTPS only
+    // 3. HSTS ï¿½ tells browsers to use HTTPS only
     // WHY not in Development: dev uses self-signed certs
     if (!app.Environment.IsDevelopment())
     {
@@ -75,16 +81,16 @@ try
     // 4. Force HTTP ? HTTPS
     app.UseHttpsRedirection();
 
-    // 5. CORS — must be before Authentication
+    // 5. CORS ï¿½ must be before Authentication
     // WHY: Browser preflight OPTIONS requests have no auth token.
     // CORS must run before auth to handle preflight correctly.
     app.UseCors("ProductCataloguePolicy");
 
-    // 6. Authentication — who are you?
+    // 6. Authentication ï¿½ who are you?
     // Wired up but JWT not configured until Phase 2
     app.UseAuthentication();
 
-    // 7. Authorization — what can you do?
+    // 7. Authorization ï¿½ what can you do?
     app.UseAuthorization();
 
     // 8. Health check endpoints
@@ -96,7 +102,6 @@ try
     app.MapHealthChecks("/health/ready");
 
     // 9. Controllers
-    app.MapGet("/", () => Results.Redirect("/swagger"));
     app.MapControllers();
 
     Log.Information("ProductCatalogueAPI started successfully");

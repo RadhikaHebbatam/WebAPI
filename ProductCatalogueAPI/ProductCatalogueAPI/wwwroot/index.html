@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Catalogue</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --text: #1a1a1a;
+      --muted: #666;
+      --border: #e0e0e0;
+      --accent: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16181d;
+        --panel: #1f232a;
+        --text: #eaeaea;
+        --muted: #9aa0a6;
+        --border: #333842;
+        --accent: #5b8def;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .subtitle a { color: var(--accent); }
+    form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.65rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    .examples {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .examples button {
+      background: none;
+      color: var(--accent);
+      padding: 0;
+      font-size: 0.8rem;
+      text-decoration: underline;
+      margin-right: 0.75rem;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      min-height: 1.2em;
+    }
+    .status.error { color: #dc2626; }
+    .interpreted {
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .interpreted code { color: var(--text); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 1rem 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+    }
+    .badge.low { background: #fee2e2; color: #991b1b; }
+    .badge.ok { background: #dcfce7; color: #166534; }
+    @media (prefers-color-scheme: dark) {
+      .badge.low { background: #4c1d1d; color: #fca5a5; }
+      .badge.ok { background: #14532d; color: #86efac; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Product Catalogue</h1>
+    <p class="subtitle">Search products using plain English. See <a href="/swagger">API docs</a>.</p>
+
+    <form id="search-form">
+      <input
+        id="query"
+        type="text"
+        placeholder="e.g. show me products under $50 with low stock"
+        autocomplete="off"
+      />
+      <button type="submit" id="search-btn">Search</button>
+    </form>
+
+    <div class="examples">
+      Try:
+      <button type="button" data-example="products under $20">products under $20</button>
+      <button type="button" data-example="electronics in stock">electronics in stock</button>
+      <button type="button" data-example="cheapest items first">cheapest items first</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="interpreted" id="interpreted" hidden></div>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('search-form');
+    const input = document.getElementById('query');
+    const button = document.getElementById('search-btn');
+    const statusEl = document.getElementById('status');
+    const interpretedEl = document.getElementById('interpreted');
+    const resultsEl = document.getElementById('results');
+
+    document.querySelectorAll('.examples button[data-example]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        input.value = btn.dataset.example;
+        form.requestSubmit();
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
+      await runSearch(query);
+    });
+
+    async function runSearch(query) {
+      button.disabled = true;
+      statusEl.textContent = 'Searching...';
+      statusEl.classList.remove('error');
+      interpretedEl.hidden = true;
+      resultsEl.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/products/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+
+        if (!res.ok) {
+          const body = await safeJson(res);
+          throw new Error(body?.message || `Request failed (${res.status})`);
+        }
+
+        const data = await res.json();
+        renderInterpreted(data.interpretedAs);
+        renderResults(data.results);
+        statusEl.textContent = `${(data.results || []).length} result(s)`;
+      } catch (err) {
+        statusEl.textContent = err.message || 'Something went wrong';
+        statusEl.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function safeJson(res) {
+      try { return await res.json(); } catch { return null; }
+    }
+
+    function renderInterpreted(filter) {
+      if (!filter) { interpretedEl.hidden = true; return; }
+      const parts = Object.entries(filter)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([k, v]) => `${k}: <code>${escapeHtml(String(v))}</code>`);
+      if (parts.length === 0) { interpretedEl.hidden = true; return; }
+      interpretedEl.innerHTML = 'Interpreted as &mdash; ' + parts.join(', &nbsp; ');
+      interpretedEl.hidden = false;
+    }
+
+    function renderResults(products) {
+      if (!products || products.length === 0) {
+        resultsEl.innerHTML = '<p class="empty">No products matched.</p>';
+        return;
+      }
+
+      const rows = products.map((p) => `
+        <tr>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${escapeHtml(p.categoryName || '')}</td>
+          <td>$${Number(p.price).toFixed(2)}</td>
+          <td>${renderStock(p.stockQuantity)}</td>
+        </tr>
+      `).join('');
+
+      resultsEl.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderStock(qty) {
+      const cls = qty <= 5 ? 'low' : 'ok';
+      return `<span class="badge ${cls}">${qty}</span>`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
