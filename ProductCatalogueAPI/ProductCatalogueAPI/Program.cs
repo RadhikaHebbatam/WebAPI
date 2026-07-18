@@ -15,6 +15,8 @@ try
 {
     Log.Information("Starting ProductCatalogueAPI");
 
+    AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.DisableUseOfAlias", true);
+
     var builder = WebApplication.CreateBuilder(args);
 
     // ?????????????????????????????????????????????????????????
@@ -66,10 +68,10 @@ try
     app.UseStaticFiles();
 
     // 2. Swagger � development only
-    
-     app.UseSwagger();
-     app.UseSwaggerUI();
-    
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
 
     // 3. HSTS � tells browsers to use HTTPS only
     // WHY not in Development: dev uses self-signed certs

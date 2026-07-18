@@ -51,37 +51,45 @@ public class NaturalLanguageQueryService
             Response: {"IsActive": true, "OrderBy": "Price", "OrderDirection": "ASC"}
             """;
 
-        // Build the request body manually
+        // Build the request body for the Azure AI Foundry Responses API
+        // (the configured Endpoint already points at .../openai/v1/responses)
         var requestBody = new
         {
             model = _config.DeploymentName,
-            messages = new[]
+            input = new[]
             {
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = userQuery }
-            },
-            temperature = 0.1 // low temperature = more deterministic/consistent JSON output
+                new { type = "message", role = "system", content = systemPrompt },
+                new { type = "message", role = "user", content = userQuery }
+            }
         };
 
         var json = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        // Foundry endpoint uses /v1/chat/completions path
-        var url = $"{_config.Endpoint.TrimEnd('/')}/v1/chat/completions";
-
-        var response = await _httpClient.PostAsync(url, content);
+        var response = await _httpClient.PostAsync(_config.Endpoint, content);
         var responseBody = await response.Content.ReadAsStringAsync();
 
         if (!response.IsSuccessStatusCode)
             return new ProductQueryFilter(); // safe fallback
 
-        // Parse the OpenAI response envelope to get the message content
+        // Parse the Responses API envelope: output[] contains items of type
+        // "message", each with content[] items of type "output_text".
         using var doc = JsonDocument.Parse(responseBody);
-        var messageContent = doc.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
+        string? messageContent = null;
+        foreach (var item in doc.RootElement.GetProperty("output").EnumerateArray())
+        {
+            if (item.GetProperty("type").GetString() != "message")
+                continue;
+
+            foreach (var part in item.GetProperty("content").EnumerateArray())
+            {
+                if (part.GetProperty("type").GetString() == "output_text")
+                {
+                    messageContent = part.GetProperty("text").GetString();
+                    break;
+                }
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(messageContent))
             return new ProductQueryFilter();
