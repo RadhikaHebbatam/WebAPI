@@ -1,4 +1,4 @@
-﻿name: Product Catalogue API - CI/CD
+name: Product Catalogue API - CI/CD
 
 on:
   push:
@@ -110,25 +110,6 @@ jobs:
           $config.AzureOpenAI.ApiKey = $env:AZURE_OPENAI_KEY
           $config | ConvertTo-Json -Depth 10 | Set-Content $appSettings
           Write-Host "Configuration injected."
-      deploy-azure:
-    name: Deploy to Azure App Service
-    runs-on: ubuntu-latest
-    needs: build-and-test
-
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: published-app
-          path: ./publish
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'productcatalogueapi-radhika'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
-          
 
       - name: Start application
         shell: powershell
@@ -170,3 +151,28 @@ jobs:
           Write-Host "URL:     http://localhost:5000"
           Write-Host "Swagger: http://localhost:5000/swagger"
           Write-Host "Health:  http://localhost:5000/health"
+
+  deploy-azure:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: published-app
+          path: ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'YOUR-APP-SERVICE-NAME-HERE'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+
+      - name: Deployment summary
+        run: |
+          echo "Deployment Complete!"
+          echo "URL:     https://YOUR-APP-SERVICE-NAME-HERE.azurewebsites.net"
+          echo "Swagger: https://YOUR-APP-SERVICE-NAME-HERE.azurewebsites.net/swagger"
