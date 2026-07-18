@@ -110,6 +110,25 @@ jobs:
           $config.AzureOpenAI.ApiKey = $env:AZURE_OPENAI_KEY
           $config | ConvertTo-Json -Depth 10 | Set-Content $appSettings
           Write-Host "Configuration injected."
+      deploy-azure:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: published-app
+          path: ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'productcatalogueapi-radhika'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+          
 
       - name: Start application
         shell: powershell
