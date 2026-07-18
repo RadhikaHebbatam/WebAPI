@@ -32,14 +32,24 @@ jobs:
       - name: Run tests
         run: dotnet test "ProductCatalogueAPI/ProductCatalogueAPI.sln" --configuration Release --no-build --verbosity normal
 
-      - name: Publish application
-        run: dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" --configuration Release --output ./publish --runtime win-x64 --self-contained false
+      - name: Publish application (Windows)
+        run: dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" --configuration Release --output ./publish-win --runtime win-x64 --self-contained false
 
-      - name: Upload build artifact
+      - name: Publish application (Linux)
+        run: dotnet publish "ProductCatalogueAPI/ProductCatalogueAPI/ProductCatalogueAPI.csproj" --configuration Release --output ./publish-linux --runtime linux-x64 --self-contained false
+
+      - name: Upload Windows build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: published-app
-          path: ./publish
+          name: published-app-win
+          path: ./publish-win
+          retention-days: 5
+
+      - name: Upload Linux build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-app-linux
+          path: ./publish-linux
           retention-days: 5
 
   deploy-local:
@@ -51,7 +61,7 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: published-app
+          name: published-app-win
           path: C:\Deploy\ProductCatalogueAPI\publish
 
       - name: Stop existing app if running
@@ -161,13 +171,13 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: published-app
+          name: published-app-linux
           path: ./publish
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'productcatalogueapi'
+          app-name: 'YOUR-APP-SERVICE-NAME-HERE'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish
 
